@@ -21,8 +21,14 @@ func TestFindInstructions(t *testing.T) {
 }
 
 func TestParseInstruction(t *testing.T) {
-	result := parseInstruction("mul(5,5)")
-	expected := 25
+	instructions := []string {
+		"mul(2,4)",
+		"mul(5,5)",
+		"mul(11,8)",
+		"mul(8,5)",
+	}
+	result := parseInstructions(instructions)
+	expected := 161
 	if result != expected {
 		t.Fatalf("Result was %d, not %d", result, expected)
 	}
