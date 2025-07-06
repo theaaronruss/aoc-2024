@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -23,6 +24,24 @@ func isValidUpdate(update []int, rules map[int][]int) bool {
 		}
 	}
 	return true
+}
+
+func fixUpdate(update []int, rules map[int][]int) {
+	if len(update) <= 1 {
+		return
+	}
+	for i := 1; i < len(update); i++ {
+		currPage := update[i]
+		rulesForPage := rules[currPage]
+		for _, dependency := range rulesForPage {
+			if index := slices.Index(update[:i], dependency); index != -1 {
+				temp := update[index]
+				update[index] = update[i]
+				update[i] = temp
+				i -= int(math.Min(2, float64(i)))
+			}
+		}
+	}
 }
 
 func parseUpdate(update []string) []int {
@@ -55,13 +74,18 @@ func main() {
 		page2, _ := strconv.Atoi(rule[1])
 		rules[page1] = append(rules[page1], page2)
 	}
-	sum := 0
+	validSum := 0
+	invalidSum := 0
 	for scanner.Scan() {
 		updateLine := strings.Split(scanner.Text(), ",")
 		update := parseUpdate(updateLine)
 		if isValidUpdate(update, rules) {
-			sum += getMiddlePage(update)
+			validSum += getMiddlePage(update)
+		} else {
+			fixUpdate(update, rules)
+			invalidSum += getMiddlePage(update)
 		}
 	}
-	fmt.Println("Sum of middle pages:", sum)
+	fmt.Println("Sum of valid middle pages:", validSum)
+	fmt.Println("Sum of invalid middle pages:", invalidSum)
 }
