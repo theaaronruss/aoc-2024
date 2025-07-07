@@ -66,22 +66,27 @@ func loadTileMap(scanner *bufio.Scanner) ([][]byte, *Guard) {
 }
 
 func countGuardMovements(tileMap[][]byte, guard *Guard) int {
+	tempTileMap := make([][]byte, len(tileMap))
+	for i, tileRow := range tileMap {
+		tempTileMap[i] = make([]byte, len(tileRow))
+		copy(tempTileMap[i], tileRow)
+	}
 	movements := 0
-	tileMapWidth := len(tileMap[0])
-	tileMapHeight := len(tileMap)
+	tileMapWidth := len(tempTileMap[0])
+	tileMapHeight := len(tempTileMap)
 	for guard.X >= 0 && guard.X < tileMapWidth && guard.Y >= 0 && guard.Y < tileMapHeight {
 		forwardX := guard.X + guard.DirX
 		forwardY := guard.Y + guard.DirY
-		if forwardX >= 0 && forwardX < tileMapWidth && forwardY >= 0 && forwardY < tileMapHeight && tileMap[forwardY][forwardX] == '#' {
+		if forwardX >= 0 && forwardX < tileMapWidth && forwardY >= 0 && forwardY < tileMapHeight && tempTileMap[forwardY][forwardX] == '#' {
 			guard.Turn()
 		}
 		guard.Move()
 		if guard.X < 0 || guard.X >= tileMapWidth || guard.Y < 0 || guard.Y >= tileMapHeight {
 			continue
 		}
-		if tileMap[guard.Y][guard.X] != 'X' {
+		if tempTileMap[guard.Y][guard.X] != 'X' {
 			movements++
-			tileMap[guard.Y][guard.X] = 'X'
+			tempTileMap[guard.Y][guard.X] = 'X'
 		}
 	}
 	return movements
