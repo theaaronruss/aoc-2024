@@ -7,25 +7,25 @@ import (
 	"strings"
 )
 
-type Guard struct {
+type entity struct {
 	X int
 	Y int
 	DirX int
 	DirY int
 }
 
-func NewGuard(x, y int) *Guard {
-	return &Guard{
+func newGuard(x, y int) *entity {
+	return &entity{
 		x, y, 0, -1,
 	}
 }
 
-func (guard *Guard) Move() {
+func (guard *entity) move() {
 	guard.X += guard.DirX
 	guard.Y += guard.DirY
 }
 
-func (guard *Guard) Turn() {
+func (guard *entity) turn() {
 	switch {
 	case guard.DirX == 0 && guard.DirY == -1:
 		guard.DirX = 1
@@ -42,54 +42,43 @@ func (guard *Guard) Turn() {
 	}
 }
 
-func loadTileMap(scanner *bufio.Scanner) ([][]byte, *Guard) {
-	var tileMap [][]byte
-	var guardX int
-	var guardY int
-	y := 0
-	for scanner.Scan() {
-		line := strings.Split(scanner.Text(), "")
-		tileLine := make([]byte, len(line))
-		for x, tile := range line {
-			tileValue := byte(tile[0])
-			if tileValue == '^' {
-				guardX = x
-				guardY = y
-				tileValue = '.'
-			}
-			tileLine[x] = tileValue
-		}
-		tileMap = append(tileMap, tileLine)
-		y++
+func isInBounds(x, y, tileMapWidth, tileMapHeight int) bool {
+	if x >= 0 && x < tileMapWidth && y >= 0 && y < tileMapHeight {
+		return true
 	}
-	return tileMap, NewGuard(guardX, guardY)
+	return false
 }
 
-func countGuardMovements(tileMap[][]byte, guard *Guard) int {
+func traceGuardPath(tileMap [][]byte, guard entity) ([][]byte, int) {
 	tempTileMap := make([][]byte, len(tileMap))
-	for i, tileRow := range tileMap {
-		tempTileMap[i] = make([]byte, len(tileRow))
-		copy(tempTileMap[i], tileRow)
+	for i, row := range tileMap {
+		tempTileMap[i] = make([]byte, len(row))
+		copy(tempTileMap[i], row)
 	}
 	movements := 0
 	tileMapWidth := len(tempTileMap[0])
 	tileMapHeight := len(tempTileMap)
-	for guard.X >= 0 && guard.X < tileMapWidth && guard.Y >= 0 && guard.Y < tileMapHeight {
+	for isInBounds(guard.X, guard.Y, tileMapWidth, tileMapHeight) {
+		fmt.Println("X:", guard.X, "Y:", guard.Y)
+		tempTileMap[guard.Y][guard.X] = 'X'
 		forwardX := guard.X + guard.DirX
 		forwardY := guard.Y + guard.DirY
-		if forwardX >= 0 && forwardX < tileMapWidth && forwardY >= 0 && forwardY < tileMapHeight && tempTileMap[forwardY][forwardX] == '#' {
-			guard.Turn()
+		if isInBounds(forwardX, forwardY, tileMapWidth, tileMapHeight) && tempTileMap[forwardY][forwardX] == '#' {
+			guard.turn()
 		}
-		guard.Move()
-		if guard.X < 0 || guard.X >= tileMapWidth || guard.Y < 0 || guard.Y >= tileMapHeight {
+		forwardX = guard.X + guard.DirX
+		forwardY = guard.Y + guard.DirY
+		if isInBounds(forwardX, forwardY, tileMapWidth, tileMapHeight) && tempTileMap[forwardY][forwardX] == '#' {
 			continue
 		}
-		if tempTileMap[guard.Y][guard.X] != 'X' {
+		if isInBounds(forwardX, forwardY, tileMapWidth, tileMapHeight) && tempTileMap[forwardY][forwardX] != 'X' {
+			guard.move()
 			movements++
-			tempTileMap[guard.Y][guard.X] = 'X'
+		} else {
+			guard.move()
 		}
 	}
-	return movements
+	return tempTileMap, movements + 1
 }
 
 func main() {
@@ -101,7 +90,23 @@ func main() {
 		panic("Failed to open input file")
 	}
 	scanner := bufio.NewScanner(file)
-	tileMap, guard := loadTileMap(scanner)
-	movements := countGuardMovements(tileMap, guard)
-	fmt.Println("Number of movements:", movements)
+	var tileMap [][]byte
+	var guard entity
+	y := 0
+	for scanner.Scan() {
+		tileStrs := strings.Split(scanner.Text(), "")
+		newTiles := make([]byte, len(tileStrs))
+		for x, tileStr := range tileStrs  {
+			tileValue := byte(tileStr[0])
+			if tileValue == '^' {
+				guard = *newGuard(x, y)
+				tileValue = '.'
+			}
+			newTiles[x] = tileValue
+		}
+		tileMap = append(tileMap, newTiles)
+		y++
+	}
+	_, movements := traceGuardPath(tileMap, guard)
+	fmt.Println("Movements:", movements)
 }
