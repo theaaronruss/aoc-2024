@@ -59,7 +59,6 @@ func traceGuardPath(tileMap [][]byte, guard entity) ([][]byte, int) {
 	tileMapWidth := len(tempTileMap[0])
 	tileMapHeight := len(tempTileMap)
 	for isInBounds(guard.X, guard.Y, tileMapWidth, tileMapHeight) {
-		fmt.Println("X:", guard.X, "Y:", guard.Y)
 		tempTileMap[guard.Y][guard.X] = 'X'
 		forwardX := guard.X + guard.DirX
 		forwardY := guard.Y + guard.DirY
@@ -79,6 +78,85 @@ func traceGuardPath(tileMap [][]byte, guard entity) ([][]byte, int) {
 		}
 	}
 	return tempTileMap, movements + 1
+}
+
+func isPathLooping(tileMap [][]byte, guard entity) bool {
+	tileMapWidth := len(tileMap[0])
+	tileMapHeight := len(tileMap)
+	for isInBounds(guard.X, guard.Y, tileMapWidth, tileMapHeight) {
+		// fmt.Println("X:", guard.X, "Y:", guard.Y)
+		tileDirX, tileDirY := decodeDirectionByte(tileMap[guard.Y][guard.X])
+		if tileDirX == guard.DirX && tileDirY == guard.DirY {
+			return true
+		}
+		tileValue := tileMap[guard.Y][guard.X]
+		if tileValue != '^' && tileValue != '>' && tileValue != 'v' && tileValue != '<' {
+			tileMap[guard.Y][guard.X] = getDirectionByte(guard.DirX, guard.DirY)
+		}
+		forwardX := guard.X + guard.DirX
+		forwardY := guard.Y + guard.DirY
+		if isInBounds(forwardX, forwardY, tileMapWidth, tileMapHeight) && tileMap[forwardY][forwardX] == '#' {
+			guard.turn()
+		}
+		forwardX = guard.X + guard.DirX
+		forwardY = guard.Y + guard.DirY
+		if isInBounds(forwardX, forwardY, tileMapWidth, tileMapHeight) && tileMap[forwardY][forwardX] == '#' {
+			continue
+		}
+		guard.move()
+	}
+	return false
+}
+
+func getDirectionByte(dirX, dirY int) byte {
+	switch {
+	case dirX == 0 && dirY == -1:
+		return '^'
+	case dirX == 1 && dirY == 0:
+		return '>'
+	case dirX == 0 && dirY == 1:
+		return 'v'
+	case dirX == -1 && dirY == 0:
+		return '<'
+	}
+	return '.'
+}
+
+func decodeDirectionByte(value byte) (int, int) {
+	switch value {
+	case '^':
+		return 0, -1
+	case '>':
+		return 1, 0
+	case 'v':
+		return 0, 1
+	case '<':
+		return -1, 0
+	}
+	return 0, 0
+}
+
+func countPossibleObstacles(guardPath [][]byte, originalTileMap [][]byte, guard entity) int {
+	locations := 0
+	pathWidth := len(guardPath[0])
+	pathHeight := len(guardPath)
+	for i := range pathWidth * pathHeight {
+		x := i % pathWidth
+		y := i / pathWidth
+		if guardPath[y][x] != 'X' {
+			continue
+		}
+		tileMap := make([][]byte, len(originalTileMap))
+		for i, row := range originalTileMap {
+			tileMap[i] = make([]byte, len(row))
+			copy(tileMap[i], row)
+		}
+		tileMap[y][x] = '#'
+		if isPathLooping(tileMap, guard) {
+			locations++
+		}
+	}
+	return locations
 }
 
 func main() {
@@ -107,6 +185,8 @@ func main() {
 		tileMap = append(tileMap, newTiles)
 		y++
 	}
-	_, movements := traceGuardPath(tileMap, guard)
-	fmt.Println("Movements:", movements)
+	guardPath, movements := traceGuardPath(tileMap, guard)
+	fmt.Println("Guard movements:", movements)
+	possibleObstacles := countPossibleObstacles(guardPath, tileMap, guard)
+	fmt.Println("Possible obstacle locations:", possibleObstacles)
 }
