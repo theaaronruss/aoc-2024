@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -14,17 +15,23 @@ func isValidEquation(targetValue int64, result int64, operands []int) bool {
 	}
 	isAddValid := false
 	isMultiplyValid := false
-	for _, op := range [2]byte {'+', '*'} {
+	isConcatValid := false
+	for _, op := range [3]string {"+", "*", "||"} {
 		value := result
-		if op == '+' {
+		if op == "+" {
 			value  += int64(operands[0])
 			isAddValid = isValidEquation(targetValue, value, operands[1:])
-		} else if op == '*' {
+		} else if op == "*" {
 			value *= int64(operands[0])
 			isMultiplyValid = isValidEquation(targetValue, value, operands[1:])
+		} else if op == "||" {
+			operandLen := math.Floor(math.Log10(float64(operands[0]))) + 1
+			value *= int64(math.Pow10(int(operandLen)))
+			value += int64(operands[0])
+			isConcatValid = isValidEquation(targetValue, value, operands[1:])
 		}
 	}
-	return isAddValid || isMultiplyValid
+	return isAddValid || isMultiplyValid || isConcatValid
 }
 
 func main() {
